@@ -13,7 +13,7 @@ library(dbplyr)
 library(DBI)
 library(leaflet)
 
-con <- DBI::dbConnect(odbc::odbc(), "SQL Server", pwd = "ABCd4321", uid = "rstudioadmin")
+con <- DBI::dbConnect(odbc::odbc(), "SQL Server")
 
 flights <- tbl(con, "flights")
 airports <- tbl(con, "airports")

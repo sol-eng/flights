@@ -7,7 +7,7 @@ library(highcharter)
 library(DT)
 library(htmltools)
 
-con <- DBI::dbConnect(odbc::odbc(), "SQL Server", pwd = "ABCd4321", uid = "rstudioadmin")
+con <- DBI::dbConnect(odbc::odbc())
 
 # Use purrr's split() and map() function to create the list
 # needed to display the name of the airline but pass its
