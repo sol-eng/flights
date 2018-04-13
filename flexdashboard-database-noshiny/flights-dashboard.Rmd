@@ -1,0 +1,120 @@
+---
+title: "Flights Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(dbplyr)
+library(DBI)
+library(leaflet)
+
+con <- DBI::dbConnect(odbc::odbc(), "SQL Server", pwd = "ABCd4321", uid = "rstudioadmin")
+
+flights <- tbl(con, "flights")
+airports <- tbl(con, "airports")
+```
+
+Row {data-height = 200}
+-----------------------------------------------------------------------
+
+### Observations
+```{r}
+valueBox(
+  prettyNum(pull(tally(flights)), big.mark = ","), 
+  "Total Number of Flights", 
+  icon = "fa-plane",
+  color = "lightblue"
+  )
+```
+
+### Total Airports
+```{r}
+flights %>%
+  group_by(dest) %>%
+  summarise() %>%
+  tally() %>%
+  pull() %>%
+  valueBox(., "Total Destination Airports", icon = "fa-globe")
+```
+
+### Delayed Ratio
+```{r}
+
+flights %>%
+  summarise(
+    delayed = sum(ifelse(dep_delay > 15, 1 , 0), na.rm = TRUE) / n()
+  ) %>%
+  mutate(delayed = round(delayed * 100, 0)) %>%
+  pull() %>%
+  gauge(value = ., min = 0, max = 100, label = "Delayed Ratio")
+```
+
+
+Row {data-height = 800}
+-----------------------------------------------------------------------
+
+### Fligths by Origin Airports
+
+```{r}
+flights %>%
+  inner_join(airports, by = c("origin" = "faa")) %>%
+  group_by(name, lon, lat) %>%
+  tally() %>%
+  collect() %>%
+  ungroup() %>%
+  mutate(
+    circle = (n / max(n)) * 60
+    ) %>%
+  leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~ lon,
+    lat = ~ lat,
+    radius = ~ circle  ,
+    fillOpacity  = 0.5,
+    stroke = FALSE,
+    color = "blue",
+    label = ~paste0(name, " - ", prettyNum(n, big.mark = ",")),
+    labelOptions = labelOptions(noHide = TRUE, offset = c(-45, 0), textsize = "12px")
+    )
+
+```
+
+### Fligths by Destination Airports
+
+```{r}
+flights %>%
+  inner_join(airports, by = c("dest" = "faa")) %>%
+  group_by(name, lon, lat) %>%
+  tally() %>%
+  collect() %>%
+  ungroup() %>%
+  mutate(
+    circle = (n / max(n)) * 15
+    ) %>%
+  leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng = ~ lon,
+    lat = ~ lat,
+    radius = ~ circle  ,
+    fillOpacity  = 0.5,
+    stroke = FALSE,
+    color = "green",
+    label = ~paste0(name, " - ", prettyNum(n, big.mark = ",")),
+    labelOptions = labelOptions(noHide = FALSE, offset = c(-45, -40), textsize = "12px")
+    )
+
+```
+
+
+
+```{r, include = FALSE}
+dbDisconnect(con)
+```
+
